@@ -1,0 +1,14 @@
+/ {
+    zephyr,user {
+        io-channels = <&adc 4>;
+    };
+};
+
+&i2c0 {
+    SHT4X: sht4x@44 {
+        compatible = "sensirion,sht4x";
+        reg = <0x44>;
+        label = "SHT4X";
+        repeatability = <0>;
+    };
+};
