@@ -11,9 +11,20 @@
 
 LOG_MODULE_REGISTER(yuzu, CONFIG_LOG_DEFAULT_LEVEL);
 
-#define SLEEP_TIME_MS 5000
+// 60 seconds for production
+#define SLEEP_TIME_MS 60000
+// 5 secs for dev
+// #define SLEEP_TIME_MS 5000
+
 #define LED0_NODE DT_ALIAS(led0)
 static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
+
+#ifdef CONFIG_BOARD_NRF52840DK_NRF52840
+#define SHT_NODE DEVICE_DT_GET_ONE(sensirion_sht4x);
+#elif CONFIG_BOARD_ADAFRUIT_FEATHER_NRF52840_SENSE
+#define SHT_NODE DEVICE_DT_GET_ONE(sensirion_sht3xd);
+#endif
+const struct device *const sht = SHT_NODE;
 
 int main(void)
 {
@@ -29,11 +40,6 @@ int main(void)
         return 0;
     }
 
-#ifdef CONFIG_BOARD_NRF52840DK_NRF52840
-    const struct device *const sht = DEVICE_DT_GET_ONE(sensirion_sht4x);
-#elif CONFIG_BOARD_ADAFRUIT_FEATHER_SENSE_NRF52840
-    const struct device *const sht = DEVICE_DT_GET_ONE(sensirion_sht3xd);
-#endif
     if (!device_is_ready(sht))
     {
         LOG_ERR("SHT device %s is not ready", sht->name);
@@ -74,23 +80,25 @@ int main(void)
         batt_pct = battery_level_pptt(batt_mv);
 
         // Get tempertaure and humidity data
-
-        err = sensor_sample_fetch(sht);
-        if (err == 0)
+        if (sht)
         {
-            err = sensor_channel_get(sht, SENSOR_CHAN_AMBIENT_TEMP, &temp_raw);
+            err = sensor_sample_fetch(sht);
+            if (err == 0)
+            {
+                err = sensor_channel_get(sht, SENSOR_CHAN_AMBIENT_TEMP, &temp_raw);
+            }
+            if (err == 0)
+            {
+                err = sensor_channel_get(sht, SENSOR_CHAN_HUMIDITY, &hum_raw);
+            }
+            if (err != 0)
+            {
+                LOG_WRN("SHT failed: %d", err);
+                continue;
+            }
+            temp = roundf(sensor_value_to_float(&temp_raw) * 100);
+            hum = roundf(sensor_value_to_float(&hum_raw) * 100);
         }
-        if (err == 0)
-        {
-            err = sensor_channel_get(sht, SENSOR_CHAN_HUMIDITY, &hum_raw);
-        }
-        if (err != 0)
-        {
-            LOG_WRN("SHT3XD: failed: %d", err);
-            continue;
-        }
-        temp = roundf(sensor_value_to_float(&temp_raw) * 100);
-        hum = roundf(sensor_value_to_float(&hum_raw) * 100);
 
         LOG_INF("Batt %d%% %dmV, Temp: %dC, Hum %d%%RH", batt_pct / 100, batt_mv, temp, hum);
         bluetooth_update(batt_pct, batt_mv, temp, hum);
