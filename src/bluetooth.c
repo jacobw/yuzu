@@ -16,33 +16,12 @@ LOG_MODULE_REGISTER(yuzu_bluetooth, CONFIG_LOG_DEFAULT_LEVEL);
 #define IDX_VOLTL 12               // Index of hi byte of temp in service data
 #define IDX_VOLTH 13               // Index of hi byte of temp in service data
 
-#define ADV_PARAM BT_LE_ADV_PARAM(BT_LE_ADV_OPT_USE_IDENTITY, \
-                                  BT_GAP_ADV_SLOW_INT_MIN,    \
-                                  BT_GAP_ADV_SLOW_INT_MAX, NULL)
+#define BT_GAP_ADV_VERY_SLOW_INT_MIN 0x3200 /* 8 s      */
+#define BT_GAP_ADV_VERY_SLOW_INT_MAX 0x3840 /* 9 s      */
 
-// #define BT_GAP_ADV_SLOW_INT_MIN                 0x0640  /* 1 s  (1600)     */
-// #define BT_GAP_ADV_SLOW_INT_MAX                 0x0780  /* 1.2 s    */
-
-#define BT_GAP_ADV_SLOW_INT_MIN2 0x3200  /* 8 s      */
-#define BT_GAP_ADV_SLOW_INT_MAX2 0x3840  /* 9 s      */
-#define BT_GAP_ADV_SLOW_INT_MIN3 0x16A80 /* 58 s     */
-#define BT_GAP_ADV_SLOW_INT_MAX3 0x170C0 /* 59 s     */
-
-#define ADV_PARAM2 BT_LE_ADV_PARAM(BT_LE_ADV_OPT_USE_IDENTITY, \
-                                   BT_GAP_ADV_SLOW_INT_MIN2,   \
-                                   BT_GAP_ADV_SLOW_INT_MAX2, NULL)
-
-#define ADV_PARAM3 BT_LE_ADV_PARAM(BT_LE_ADV_OPT_USE_IDENTITY, \
-                                   BT_GAP_ADV_SLOW_INT_MIN3,   \
-                                   BT_GAP_ADV_SLOW_INT_MAX3, NULL)
-
-#define ADV_PARAM4 BT_LE_ADV_PARAM(BT_LE_ADV_OPT_USE_NAME,   \
-                                   BT_GAP_ADV_SLOW_INT_MIN2, \
-                                   BT_GAP_ADV_SLOW_INT_MAX2, NULL)
-
-#define ADV_PARAM5 BT_LE_ADV_PARAM(BT_LE_ADV_OPT_USE_NAME | BT_LE_ADV_OPT_FORCE_NAME_IN_AD, \
-                                   BT_GAP_ADV_SLOW_INT_MIN2,                                \
-                                   BT_GAP_ADV_SLOW_INT_MAX2, NULL)
+#define ADV_PARAM BT_LE_ADV_PARAM(BT_LE_ADV_OPT_USE_IDENTITY | BT_LE_ADV_OPT_USE_NAME | BT_LE_ADV_OPT_FORCE_NAME_IN_AD, \
+                                  BT_GAP_ADV_VERY_SLOW_INT_MIN,                                                         \
+                                  BT_GAP_ADV_VERY_SLOW_INT_MAX, NULL)
 
 static K_SEM_DEFINE(bt_init_ok, 1, 1);
 
@@ -98,7 +77,6 @@ void bt_ready(int err)
         LOG_ERR("bt_enable returned %d", err);
     }
     k_sem_give(&bt_init_ok);
-    LOG_INF("Bluetooth successfully started");
 }
 
 /* Custom functions */
@@ -107,7 +85,7 @@ int bluetooth_init()
 {
     int err;
 
-    LOG_INF("Initializing bluetooth3...");
+    LOG_INF("Initializing bluetooth");
 
     err = bt_enable(bt_ready);
     if (err)
@@ -115,23 +93,16 @@ int bluetooth_init()
         LOG_ERR("bt_enable returned %d", err);
         return err;
     }
+    k_sem_take(&bt_init_ok, K_FOREVER);
     LOG_INF("Bluetooth initialised");
 
-    k_sem_take(&bt_init_ok, K_FOREVER);
-    LOG_INF("Bluetooth sem given");
-
-    // err = bt_le_adv_start(BT_LE_ADV_CONN_NAME, ad, ARRAY_SIZE(ad), NULL, 0);
-    // err = bt_le_adv_start(BT_LE_ADV_CONN, ad, ARRAY_SIZE(ad), NULL, 0);
-    err = bt_le_adv_start(ADV_PARAM2, ad, ARRAY_SIZE(ad), NULL, 0);
-    // err = bt_le_adv_start(ADV_PARAM, ad, ARRAY_SIZE(ad), NULL, 0);
-    // err = bt_le_adv_start(ADV_PARAM4, ad, ARRAY_SIZE(ad), NULL, 0);
-    // err = bt_le_adv_start(ADV_PARAM5, ad, ARRAY_SIZE(ad), NULL, 0);
+    err = bt_le_adv_start(ADV_PARAM, ad, ARRAY_SIZE(ad), NULL, 0);
     if (err)
     {
         LOG_ERR("Advertising failed to start (err %d)", err);
         return err;
     }
-    LOG_INF("Advertising successfully started");
+    LOG_INF("Advertising started");
 
     return err;
 }
