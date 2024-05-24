@@ -13,13 +13,17 @@ LOG_MODULE_REGISTER(yuzu, CONFIG_LOG_DEFAULT_LEVEL);
 
 // 60 seconds for production
 #define SLEEP_TIME_MS 60000
-// 5 secs for dev
-// #define SLEEP_TIME_MS 5000
+// 10 secs for dev
+// #define SLEEP_TIME_MS 10000
 
 #define LED0_NODE DT_ALIAS(led0)
 static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
 
 #ifdef CONFIG_BOARD_NRF52840DK_NRF52840
+#define SHT_NODE DEVICE_DT_GET_ONE(sensirion_sht4x);
+#elif CONFIG_BOARD_YUZU_NRF52840
+#define SHT_NODE DEVICE_DT_GET_ONE(sensirion_sht4x);
+#elif CONFIG_BOARD_ADAFRUIT_FEATHER_NRF52840_EXPRESS_UF2
 #define SHT_NODE DEVICE_DT_GET_ONE(sensirion_sht4x);
 #elif CONFIG_BOARD_ADAFRUIT_FEATHER_NRF52840_SENSE
 #define SHT_NODE DEVICE_DT_GET_ONE(sensirion_sht3xd);
