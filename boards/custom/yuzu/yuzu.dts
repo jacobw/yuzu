@@ -1,17 +1,11 @@
-/*
- * Copyright (c) 2017 Linaro Limited
- *
- * SPDX-License-Identifier: Apache-2.0
- */
-
 /dts-v1/;
 #include <nordic/nrf52840_qiaa.dtsi>
-#include "yuzu_nrf52840-pinctrl.dtsi"
+#include "yuzu-pinctrl.dtsi"
 #include <zephyr/dt-bindings/input/input-event-codes.h>
 
 / {
-	model = "Nordic Yuzu NRF52840";
-	compatible = "nordic,yuzu-nrf52840";
+	model = "Yuzu";
+	compatible = "custom,yuzu";
 
 	chosen {
 		zephyr,sram = &sram0;

@@ -1,0 +1,6 @@
+if BOARD_YUZU
+
+config BT_CTLR
+	default BT
+
+endif # BOARD_YUZU

@@ -1,5 +1,5 @@
-identifier: yuzu_nrf52840
-name: Yuzu-NRF52840
+identifier: yuzu
+name: Yuzu
 type: mcu
 arch: arm
 ram: 256
