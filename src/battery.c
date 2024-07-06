@@ -24,12 +24,19 @@ LOG_MODULE_REGISTER(yuzu_battery, CONFIG_ADC_LOG_LEVEL);
 #define ZEPHYR_USER DT_PATH(zephyr_user)
 #define BATTERY_ADC_GAIN ADC_GAIN_1_6
 
-/** A discharge curve specific to the power source. */
+/** A discharge curve for panasonic cr2032. */
 static const struct battery_level_point levels[] = {
-	{10000, 3950},
-	{625, 3550},
-	{0, 3100},
+	{10000, 2950},
+	{1900, 2875},
+	{0, 2625},
 };
+
+// // orig levels lipo
+// static const struct battery_level_point levels[] = {
+// 	{10000, 3950},
+// 	{625, 3550},
+// 	{0, 3100},
+// };
 
 struct io_channel_config
 {
