@@ -24,20 +24,6 @@ LOG_MODULE_REGISTER(yuzu_battery, CONFIG_ADC_LOG_LEVEL);
 #define ZEPHYR_USER DT_PATH(zephyr_user)
 #define BATTERY_ADC_GAIN ADC_GAIN_1_6
 
-/** A discharge curve for panasonic cr2032. */
-static const struct battery_level_point levels[] = {
-	{10000, 2950},
-	{1900, 2875},
-	{0, 2625},
-};
-
-// // orig levels lipo
-// static const struct battery_level_point levels[] = {
-// 	{10000, 3950},
-// 	{625, 3550},
-// 	{0, 3100},
-// };
-
 struct io_channel_config
 {
 	uint8_t channel;
@@ -221,22 +207,21 @@ int battery_sample(void)
 	return rc;
 }
 
-unsigned int battery_level_pptt(unsigned int batt_mV)
+unsigned int battery_level_pptt(unsigned int batt_mV,
+				const struct battery_level_point *curve)
 {
-	const struct battery_level_point *pb = levels;
+	const struct battery_level_point *pb = curve;
 
-	if (batt_mV >= pb->lvl_mV)
-	{
+	if (batt_mV >= pb->lvl_mV) {
 		/* Measured voltage above highest point, cap at maximum. */
 		return pb->lvl_pptt;
 	}
 	/* Go down to the last point at or below the measured voltage. */
-	while ((pb->lvl_pptt > 0) && (batt_mV < pb->lvl_mV))
-	{
+	while ((pb->lvl_pptt > 0)
+	       && (batt_mV < pb->lvl_mV)) {
 		++pb;
 	}
-	if (batt_mV < pb->lvl_mV)
-	{
+	if (batt_mV < pb->lvl_mV) {
 		/* Below lowest point, cap at minimum */
 		return pb->lvl_pptt;
 	}
@@ -244,5 +229,8 @@ unsigned int battery_level_pptt(unsigned int batt_mV)
 	/* Linear interpolation between below and above points. */
 	const struct battery_level_point *pa = pb - 1;
 
-	return pb->lvl_pptt + ((pa->lvl_pptt - pb->lvl_pptt) * (batt_mV - pb->lvl_mV) / (pa->lvl_mV - pb->lvl_mV));
+	return pb->lvl_pptt
+	       + ((pa->lvl_pptt - pb->lvl_pptt)
+		  * (batt_mV - pb->lvl_mV)
+		  / (pa->lvl_mV - pb->lvl_mV));
 }

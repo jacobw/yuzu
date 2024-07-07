@@ -81,7 +81,7 @@ int main(void)
             LOG_WRN("Failed to read battery voltage: %d", batt_mv);
             continue;
         }
-        batt_pct = battery_level_pptt(batt_mv);
+        batt_pct = battery_level_pptt(batt_mv, discharge_curve_cr2032);
 
         // Get tempertaure and humidity data
         if (sht)

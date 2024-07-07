@@ -38,6 +38,24 @@ struct battery_level_point
 	uint16_t lvl_mV;
 };
 
+/** Simple discharging curve for a typical CR2032 coin cell battery. 
+*
+* See https://github.com/stanvn/zigbee-plant-sensor/pull/4 
+*/
+static const struct battery_level_point discharge_curve_cr2032[] = {
+	{10000, 3100},
+	{9900, 3000},
+	{9800, 2900},
+	{9600, 2800},
+	{2100, 2700},
+	{1100, 2600},
+	{700, 2500},
+	{400, 2400},
+	{200, 2300},
+	{100, 2200},
+	{0, 2000},
+};
+
 /** Calculate the estimated battery level based on a measured voltage.
  *
  * @param batt_mV a measured battery voltage level.
@@ -48,6 +66,8 @@ struct battery_level_point
  * @return the estimated remaining capacity in parts per ten
  * thousand.
  */
-unsigned int battery_level_pptt(unsigned int batt_mV);
+unsigned int battery_level_pptt(unsigned int batt_mV,
+				const struct battery_level_point *curve);
+
 
 #endif /* APPLICATION_BATTERY_H_ */
