@@ -19,9 +19,15 @@ LOG_MODULE_REGISTER(yuzu_bluetooth, CONFIG_LOG_DEFAULT_LEVEL);
 #define BT_GAP_ADV_VERY_SLOW_INT_MIN 0x3200 /* 8 s      */
 #define BT_GAP_ADV_VERY_SLOW_INT_MAX 0x3840 /* 9 s      */
 
-#define ADV_PARAM BT_LE_ADV_PARAM(BT_LE_ADV_OPT_USE_IDENTITY | BT_LE_ADV_OPT_USE_NAME | BT_LE_ADV_OPT_FORCE_NAME_IN_AD, \
-                                  BT_GAP_ADV_VERY_SLOW_INT_MIN,                                                         \
+
+#define ADV_PARAM BT_LE_ADV_PARAM(BT_LE_ADV_OPT_CONNECTABLE | BT_LE_ADV_OPT_USE_IDENTITY | BT_LE_ADV_OPT_USE_NAME | BT_LE_ADV_OPT_FORCE_NAME_IN_AD, \
+                                  BT_GAP_ADV_VERY_SLOW_INT_MIN, \
                                   BT_GAP_ADV_VERY_SLOW_INT_MAX, NULL)
+
+
+// #define ADV_PARAM BT_LE_ADV_PARAM(BT_LE_ADV_OPT_USE_IDENTITY | BT_LE_ADV_OPT_USE_NAME | BT_LE_ADV_OPT_FORCE_NAME_IN_AD, \
+//                                   BT_GAP_ADV_VERY_SLOW_INT_MIN,                                                         \
+//                                   BT_GAP_ADV_VERY_SLOW_INT_MAX, NULL)
 
 static K_SEM_DEFINE(bt_init_ok, 1, 1);
 
