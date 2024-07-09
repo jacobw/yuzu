@@ -16,18 +16,12 @@ LOG_MODULE_REGISTER(yuzu_bluetooth, CONFIG_LOG_DEFAULT_LEVEL);
 #define IDX_VOLTL 12               // Index of hi byte of temp in service data
 #define IDX_VOLTH 13               // Index of hi byte of temp in service data
 
-#define BT_GAP_ADV_VERY_SLOW_INT_MIN 0x3200 /* 8 s      */
-#define BT_GAP_ADV_VERY_SLOW_INT_MAX 0x3840 /* 9 s      */
+#define BT_GAP_ADV_VERY_SLOW_INT_MIN 0x3200 // 8s
+#define BT_GAP_ADV_VERY_SLOW_INT_MAX 0x3840 // 9s
 
-
-#define ADV_PARAM BT_LE_ADV_PARAM(BT_LE_ADV_OPT_CONNECTABLE | BT_LE_ADV_OPT_USE_IDENTITY | BT_LE_ADV_OPT_USE_NAME | BT_LE_ADV_OPT_FORCE_NAME_IN_AD, \
+#define ADV_PARAM BT_LE_ADV_PARAM(BT_LE_ADV_OPT_CONNECTABLE | BT_LE_ADV_OPT_USE_IDENTITY, \
                                   BT_GAP_ADV_VERY_SLOW_INT_MIN, \
                                   BT_GAP_ADV_VERY_SLOW_INT_MAX, NULL)
-
-
-// #define ADV_PARAM BT_LE_ADV_PARAM(BT_LE_ADV_OPT_USE_IDENTITY | BT_LE_ADV_OPT_USE_NAME | BT_LE_ADV_OPT_FORCE_NAME_IN_AD, \
-//                                   BT_GAP_ADV_VERY_SLOW_INT_MIN,                                                         \
-//                                   BT_GAP_ADV_VERY_SLOW_INT_MAX, NULL)
 
 static K_SEM_DEFINE(bt_init_ok, 1, 1);
 
@@ -52,7 +46,8 @@ static uint8_t service_data[] = {
 
 static const struct bt_data ad[] = {
     BT_DATA_BYTES(BT_DATA_FLAGS, (BT_LE_AD_GENERAL | BT_LE_AD_NO_BREDR)),
-    BT_DATA(BT_DATA_SVC_DATA16, service_data, ARRAY_SIZE(service_data))};
+    BT_DATA(BT_DATA_SVC_DATA16, service_data, ARRAY_SIZE(service_data)),
+    BT_DATA(BT_DATA_NAME_COMPLETE, CONFIG_BT_DEVICE_NAME, sizeof(CONFIG_BT_DEVICE_NAME) - 1)};
 
 /* Declarations */
 
