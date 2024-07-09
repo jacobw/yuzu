@@ -44,10 +44,14 @@ static uint8_t service_data[] = {
     0x00, // High byte
 };
 
+// define buffer for device name that we can populate on init
+char name[10];
+
 static const struct bt_data ad[] = {
     BT_DATA_BYTES(BT_DATA_FLAGS, (BT_LE_AD_GENERAL | BT_LE_AD_NO_BREDR)),
     BT_DATA(BT_DATA_SVC_DATA16, service_data, ARRAY_SIZE(service_data)),
-    BT_DATA(BT_DATA_NAME_COMPLETE, CONFIG_BT_DEVICE_NAME, sizeof(CONFIG_BT_DEVICE_NAME) - 1)};
+    BT_DATA(BT_DATA_NAME_COMPLETE, name, sizeof(name) - 1)};
+
 
 /* Declarations */
 
@@ -79,6 +83,18 @@ void bt_ready(int err)
 
 /* Custom functions */
 
+// Add last 6 chars of mac address to name so devices can be identified
+// Use ATC formac so it gets stripped correctly by Home Assistant BTHome integration
+// https://github.com/Bluetooth-Devices/bthome-ble/blob/main/src/bthome_ble/parser.py#L263
+int name_add_mac(char *str)
+{
+	bt_addr_le_t addr = {0};
+	size_t count = 1;
+
+    bt_id_get(&addr, &count);
+    return sprintf(str, "%.2s %02X%02X%02X", DEVICE_NAME, addr.a.val[2], addr.a.val[1], addr.a.val[0]);
+}
+
 int bluetooth_init()
 {
     int err;
@@ -93,6 +109,10 @@ int bluetooth_init()
     }
     k_sem_take(&bt_init_ok, K_FOREVER);
     LOG_INF("Bluetooth initialised");
+
+    // Add mac to name
+    name_add_mac(name);
+    LOG_INF("Name: %s", name);
 
     err = bt_le_adv_start(ADV_PARAM, ad, ARRAY_SIZE(ad), NULL, 0);
     if (err)
