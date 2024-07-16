@@ -92,8 +92,8 @@ int main(void)
                 LOG_WRN("SHT failed: %d", err);
                 continue;
             }
-            temp = roundf(sensor_value_to_float(&temp_raw) * 100);
-            hum = roundf(sensor_value_to_float(&hum_raw) * 100);
+            temp = roundf(sensor_value_to_float(&temp_raw) * 10) * 10;
+            hum = roundf(sensor_value_to_float(&hum_raw) * 10) * 10;
         }
 
         LOG_INF("Batt %d%% %dmV, Temp: %dC, Hum %d%%RH", batt_pct / 100, batt_mv, temp, hum);
