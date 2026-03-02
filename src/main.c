@@ -45,13 +45,6 @@ int main(void)
         LOG_INF("SHT Device ready");
     }
 
-    err = battery_measure_enable(true);
-    if (err != 0)
-    {
-        LOG_ERR("Failed initialize battery measurement: %d", err);
-        return 0;
-    }
-
     err = bluetooth_init();
     if (err != 0)
     {
@@ -106,6 +99,5 @@ int main(void)
         }
         k_msleep(SLEEP_TIME_MS);
     };
-    LOG_INF("Disable: %d", battery_measure_enable(false));
     return 0;
 }
