@@ -1,0 +1,10 @@
+source "Kconfig.zephyr"
+
+config YUZU_SAMPLE_INTERVAL_MS
+	int "Yuzu sampling interval (milliseconds)"
+	default 20000
+	range 1000 3600000
+	help
+	  Time in milliseconds between sensor readings.
+	  Lower values = more frequent updates but higher power consumption.
+	  Higher values = longer battery life but less responsive data.

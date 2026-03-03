@@ -11,11 +11,6 @@
 
 LOG_MODULE_REGISTER(yuzu, CONFIG_LOG_DEFAULT_LEVEL);
 
-// 60 seconds for production
-#define SLEEP_TIME_MS 60000
-// 10 secs for dev
-// #define SLEEP_TIME_MS 10000
-
 #define LED0_NODE DT_ALIAS(led0)
 static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
 
@@ -97,7 +92,7 @@ int main(void)
         {
             return 0;
         }
-        k_msleep(SLEEP_TIME_MS);
+        k_msleep(CONFIG_YUZU_SAMPLE_INTERVAL_MS);
     };
     return 0;
 }
