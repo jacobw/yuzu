@@ -1,5 +1,6 @@
-
+#include <errno.h>
 #include <math.h>
+
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/drivers/sensor.h>
@@ -26,9 +27,10 @@ int main(void)
     unsigned int hum = 0;
     struct sensor_value temp_raw, hum_raw;
 
-    if (!gpio_is_ready_dt(&led)) {
-        return 0;
-    }
+	if (!gpio_is_ready_dt(&led)) {
+		LOG_ERR("LED GPIO device not ready");
+		return -ENODEV;
+	}
 
     if (!device_is_ready(sht)) {
         LOG_ERR("SHT device %s is not ready", sht->name);
