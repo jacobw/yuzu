@@ -21,11 +21,6 @@ const struct device *const sht = SHT_NODE;
 int main(void)
 {
 	int err;
-	unsigned int batt_pct = 0;
-	unsigned int batt_mv = 0;
-	unsigned int temp = 0;
-	unsigned int hum = 0;
-	struct sensor_value temp_raw, hum_raw;
 
 	if (!gpio_is_ready_dt(&led)) {
 		LOG_ERR("LED GPIO device not ready");
@@ -51,13 +46,16 @@ int main(void)
 	}
 
 	while (true) {
-		// Get battery data
-		batt_mv = battery_sample();
-		if (batt_mv < 0) {
-			LOG_WRN("Failed to read battery voltage: %d", batt_mv);
+		struct battery_measurement batt = {0};
+		uint16_t temp = 0;
+		uint16_t hum = 0;
+		struct sensor_value temp_raw, hum_raw;
+
+		int battery_err = battery_measure(&batt);
+		if (battery_err != 0) {
+			LOG_WRN("Failed to read battery: %d", battery_err);
 			continue;
 		}
-		batt_pct = battery_level_pptt(batt_mv, discharge_curve_cr2032);
 
 		// Get tempertaure and humidity data
 		if (sht) {
@@ -76,8 +74,10 @@ int main(void)
 			hum = roundf(sensor_value_to_float(&hum_raw) * 10) * 10;
 		}
 
-		LOG_INF("Batt %d%% %dmV, Temp: %dC, Hum %d%%RH", batt_pct / 100, batt_mv, temp, hum);
-		bluetooth_update(batt_pct, batt_mv, temp, hum);
+		LOG_INF("Batt %u.%02u%% %umV, Temp: %uC, Hum %u%%RH", 
+				batt.level / 100, batt.level % 100, 
+				batt.mv, temp, hum);
+		bluetooth_update(batt.level, batt.mv, temp, hum);
 
 		/* Flash LED after successful update */
 		gpio_pin_set_dt(&led, 1);

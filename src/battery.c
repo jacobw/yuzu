@@ -1,12 +1,10 @@
 #include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <errno.h>
 
 #include <zephyr/kernel.h>
 #include <zephyr/init.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/adc.h>
-#include <zephyr/drivers/sensor.h>
 #include <zephyr/logging/log.h>
 
 #include "battery.h"
@@ -21,8 +19,21 @@ static struct adc_sequence sequence = {
 	.buffer_size = sizeof(buf),
 };
 
-/** Simple discharging curve for a typical CR2032 coin cell battery. 
-* See https://github.com/stanvn/zigbee-plant-sensor/pull/4 */
+/* A point in a battery discharge curve sequence.
+ * A discharge curve is defined as a sequence of these points, where
+ * the first point has #lvl_pptt set to 10000 and the last point has
+ * #lvl_pptt set to zero.  Both #lvl_pptt and #lvl_mV should be
+ * monotonic decreasing within the sequence. */
+struct battery_level_point {
+	/** Remaining life at #lvl_pptt. */
+	uint16_t lvl_pptt;
+
+	/** Battery voltage at #lvl_pptt remaining life. */
+	uint16_t lvl_mV;
+};
+
+/* Simple discharging curve for a typical CR2032 coin cell battery. 
+ * See https://github.com/stanvn/zigbee-plant-sensor/pull/4 */
 static const struct battery_level_point discharge_curve_cr2032[] = {
 	{10000, 3100},
 	{9900, 3000},
@@ -35,19 +46,6 @@ static const struct battery_level_point discharge_curve_cr2032[] = {
 	{200, 2300},
 	{100, 2200},
 	{0, 2000},
-};
-
-/* A point in a battery discharge curve sequence.
- * A discharge curve is defined as a sequence of these points, where
- * the first point has #lvl_pptt set to 10000 and the last point has
- * #lvl_pptt set to zero.  Both #lvl_pptt and #lvl_mV should be
- * monotonic decreasing within the sequence. */
-struct battery_level_point {
-	/** Remaining life at #lvl_mV. */
-	uint16_t lvl_pptt;
-
-	/** Battery voltage at #lvl_pptt remaining life. */
-	uint16_t lvl_mV;
 };
 
 /** Calculate battery level from voltage.
@@ -117,10 +115,15 @@ static int battery_setup(void)
 
 SYS_INIT(battery_setup, APPLICATION, CONFIG_APPLICATION_INIT_PRIORITY);
 
-int battery_sample(void)
+int battery_measure(struct battery_measurement *measurement)
 {
 	int ret;
 	int32_t val_mv;
+
+	if (measurement == NULL) {
+		LOG_ERR("Invalid measurement pointer");
+		return -EINVAL;
+	}
 
 	ret = adc_read_dt(&adc_channel, &sequence);
 	if (ret < 0) {
@@ -133,7 +136,15 @@ int battery_sample(void)
 	if (ret < 0) {
 		LOG_WRN("Value in mV not available (%d)", ret);
 		return ret;
-	}	
+	}
 
-	return val_mv;
+	measurement->mv = (uint16_t)val_mv;
+	measurement->level = battery_mv_to_level(val_mv, discharge_curve_cr2032);
+
+	LOG_DBG("Battery: %u mV, level: %u.%02u%%",
+		measurement->mv,
+		measurement->level / 100,
+		measurement->level % 100);
+
+	return 0;
 }
