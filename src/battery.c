@@ -21,6 +21,75 @@ static struct adc_sequence sequence = {
 	.buffer_size = sizeof(buf),
 };
 
+/** Simple discharging curve for a typical CR2032 coin cell battery. 
+* See https://github.com/stanvn/zigbee-plant-sensor/pull/4 */
+static const struct battery_level_point discharge_curve_cr2032[] = {
+	{10000, 3100},
+	{9900, 3000},
+	{9800, 2900},
+	{9600, 2800},
+	{2100, 2700},
+	{1100, 2600},
+	{700, 2500},
+	{400, 2400},
+	{200, 2300},
+	{100, 2200},
+	{0, 2000},
+};
+
+/* A point in a battery discharge curve sequence.
+ * A discharge curve is defined as a sequence of these points, where
+ * the first point has #lvl_pptt set to 10000 and the last point has
+ * #lvl_pptt set to zero.  Both #lvl_pptt and #lvl_mV should be
+ * monotonic decreasing within the sequence. */
+struct battery_level_point {
+	/** Remaining life at #lvl_mV. */
+	uint16_t lvl_pptt;
+
+	/** Battery voltage at #lvl_pptt remaining life. */
+	uint16_t lvl_mV;
+};
+
+/** Calculate battery level from voltage.
+ *
+ * Internal helper function that performs linear interpolation between
+ * discharge curve points to estimate remaining battery capacity.
+ *
+ * @param batt_mV	Measured battery voltage in millivolts.
+ * @param curve		Discharge curve for the battery type.
+ *
+ * @return		Remaining capacity in parts per ten thousand.
+ */
+static unsigned int battery_mv_to_level(unsigned int batt_mV,
+				    const struct battery_level_point *curve)
+{
+	const struct battery_level_point *pb = curve;
+
+	if (batt_mV >= pb->lvl_mV) {
+		/* Measured voltage above highest point, cap at maximum. */
+		return pb->lvl_pptt;
+	}
+
+	/* Go down to the last point at or below the measured voltage. */
+	while ((pb->lvl_pptt > 0)
+	       && (batt_mV < pb->lvl_mV)) {
+		++pb;
+	}
+
+	if (batt_mV < pb->lvl_mV) {
+		/* Below lowest point, cap at minimum */
+		return pb->lvl_pptt;
+	}
+
+	/* Linear interpolation between below and above points. */
+	const struct battery_level_point *pa = pb - 1;
+
+	return pb->lvl_pptt
+		   + ((pa->lvl_pptt - pb->lvl_pptt)
+			  * (batt_mV - pb->lvl_mV)
+			  / (pa->lvl_mV - pb->lvl_mV));
+}
+
 static int battery_setup(void)
 {
 	int ret;
@@ -67,32 +136,4 @@ int battery_sample(void)
 	}	
 
 	return val_mv;
-}
-
-unsigned int battery_level_pptt(unsigned int batt_mV,
-				const struct battery_level_point *curve)
-{
-	const struct battery_level_point *pb = curve;
-
-	if (batt_mV >= pb->lvl_mV) {
-		/* Measured voltage above highest point, cap at maximum. */
-		return pb->lvl_pptt;
-	}
-	/* Go down to the last point at or below the measured voltage. */
-	while ((pb->lvl_pptt > 0)
-	       && (batt_mV < pb->lvl_mV)) {
-		++pb;
-	}
-	if (batt_mV < pb->lvl_mV) {
-		/* Below lowest point, cap at minimum */
-		return pb->lvl_pptt;
-	}
-
-	/* Linear interpolation between below and above points. */
-	const struct battery_level_point *pa = pb - 1;
-
-	return pb->lvl_pptt
-	       + ((pa->lvl_pptt - pb->lvl_pptt)
-		  * (batt_mV - pb->lvl_mV)
-		  / (pa->lvl_mV - pb->lvl_mV));
 }
