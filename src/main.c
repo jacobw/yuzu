@@ -44,12 +44,13 @@ int main(void)
         return 0;
     }
 
-    while (true) {
-        err = gpio_pin_configure_dt(&led, GPIO_OUTPUT_ACTIVE);
-        if (err < 0) {
-            return 0;
-        }
+    err = gpio_pin_configure_dt(&led, GPIO_OUTPUT_INACTIVE);
+	if (err < 0) {
+		LOG_ERR("Failed to configure LED GPIO (err %d)", err);
+		return err;
+	}
 
+    while (true) {
         // Get battery data
         batt_mv = battery_sample();
         if (batt_mv < 0) {
@@ -78,10 +79,11 @@ int main(void)
         LOG_INF("Batt %d%% %dmV, Temp: %dC, Hum %d%%RH", batt_pct / 100, batt_mv, temp, hum);
         bluetooth_update(batt_pct, batt_mv, temp, hum);
 
-        err = gpio_pin_configure_dt(&led, GPIO_OUTPUT_INACTIVE);
-        if (err < 0) {
-            return 0;
-        }
+        /* Flash LED after successful update */
+        gpio_pin_set_dt(&led, 1);
+        k_msleep(10);
+        gpio_pin_set_dt(&led, 0);
+
         k_msleep(CONFIG_YUZU_SAMPLE_INTERVAL_MS);
     };
 
