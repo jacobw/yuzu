@@ -26,57 +26,46 @@ int main(void)
     unsigned int hum = 0;
     struct sensor_value temp_raw, hum_raw;
 
-    if (!gpio_is_ready_dt(&led))
-    {
+    if (!gpio_is_ready_dt(&led)) {
         return 0;
     }
 
-    if (!device_is_ready(sht))
-    {
+    if (!device_is_ready(sht)) {
         LOG_ERR("SHT device %s is not ready", sht->name);
-    }
-    else
-    {
+    } else {
         LOG_INF("SHT Device ready");
     }
 
     err = bluetooth_init();
-    if (err != 0)
-    {
+    if (err != 0) {
         LOG_ERR("Failed to update advertising data (err %d)", err);
         return 0;
     }
 
-    while (true)
-    {
+    while (true) {
         err = gpio_pin_configure_dt(&led, GPIO_OUTPUT_ACTIVE);
-        if (err < 0)
-        {
+        if (err < 0) {
             return 0;
         }
+
         // Get battery data
         batt_mv = battery_sample();
-        if (batt_mv < 0)
-        {
+        if (batt_mv < 0) {
             LOG_WRN("Failed to read battery voltage: %d", batt_mv);
             continue;
         }
         batt_pct = battery_level_pptt(batt_mv, discharge_curve_cr2032);
 
         // Get tempertaure and humidity data
-        if (sht)
-        {
+        if (sht) {
             err = sensor_sample_fetch(sht);
-            if (err == 0)
-            {
+            if (err == 0) {
                 err = sensor_channel_get(sht, SENSOR_CHAN_AMBIENT_TEMP, &temp_raw);
             }
-            if (err == 0)
-            {
+            if (err == 0) {
                 err = sensor_channel_get(sht, SENSOR_CHAN_HUMIDITY, &hum_raw);
             }
-            if (err != 0)
-            {
+            if (err != 0) {
                 LOG_WRN("SHT failed: %d", err);
                 continue;
             }
@@ -88,11 +77,11 @@ int main(void)
         bluetooth_update(batt_pct, batt_mv, temp, hum);
 
         err = gpio_pin_configure_dt(&led, GPIO_OUTPUT_INACTIVE);
-        if (err < 0)
-        {
+        if (err < 0) {
             return 0;
         }
         k_msleep(CONFIG_YUZU_SAMPLE_INTERVAL_MS);
     };
+
     return 0;
 }
