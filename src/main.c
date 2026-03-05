@@ -57,32 +57,31 @@ int main(void)
 			continue;
 		}
 
-		// Get tempertaure and humidity data
-		if (sht) {
-			err = sensor_sample_fetch(sht);
-			if (err == 0) {
-				err = sensor_channel_get(sht, SENSOR_CHAN_AMBIENT_TEMP, &temp_raw);
-			}
-			if (err == 0) {
-				err = sensor_channel_get(sht, SENSOR_CHAN_HUMIDITY, &hum_raw);
-			}
-			if (err != 0) {
-				LOG_WRN("SHT failed: %d", err);
-				continue;
-			}
-			temp = roundf(sensor_value_to_float(&temp_raw) * 10) * 10;
-			hum = roundf(sensor_value_to_float(&hum_raw) * 10) * 10;
+		int sensor_err = sensor_sample_fetch(sht);
+		if (sensor_err == 0) {
+			sensor_err = sensor_channel_get(sht, SENSOR_CHAN_AMBIENT_TEMP, &temp_raw);
+		}
+		if (sensor_err == 0) {
+			sensor_err = sensor_channel_get(sht, SENSOR_CHAN_HUMIDITY, &hum_raw);
 		}
 
-		LOG_INF("Batt %u.%02u%% %umV, Temp: %uC, Hum %u%%RH", 
-				batt.level / 100, batt.level % 100, 
-				batt.mv, temp, hum);
-		bluetooth_update(batt.level, batt.mv, temp, hum);
+		if (battery_err == 0 && sensor_err == 0) {
+			temp = roundf(sensor_value_to_float(&temp_raw) * 10) * 10;
+			hum = roundf(sensor_value_to_float(&hum_raw) * 10) * 10;
+			
+			LOG_INF("Batt %u.%02u%% %umV, Temp: %uC, Hum %u%%RH", 
+					batt.level / 100, batt.level % 100, 
+					batt.mv, temp, hum);
+			bluetooth_update(batt.level, batt.mv, temp, hum);
 
-		/* Flash LED after successful update */
-		gpio_pin_set_dt(&led, 1);
-		k_msleep(10);
-		gpio_pin_set_dt(&led, 0);
+			/* Flash LED after successful update */
+			gpio_pin_set_dt(&led, 1);
+			k_msleep(10);
+			gpio_pin_set_dt(&led, 0);
+		} else {
+			LOG_WRN("Measurement failed - battery err:%d sensor err:%d", 
+					battery_err, sensor_err);
+		}
 
 		k_msleep(CONFIG_YUZU_SAMPLE_INTERVAL_MS);
 	};
