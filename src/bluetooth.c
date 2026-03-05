@@ -1,6 +1,9 @@
+#include <errno.h>
 #include <stdio.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/bluetooth/bluetooth.h>
+#include <zephyr/bluetooth/gatt.h>
+#include <zephyr/bluetooth/uuid.h>
 #include "bluetooth.h"
 
 LOG_MODULE_REGISTER(yuzu_bluetooth, CONFIG_LOG_DEFAULT_LEVEL);
@@ -23,7 +26,7 @@ LOG_MODULE_REGISTER(yuzu_bluetooth, CONFIG_LOG_DEFAULT_LEVEL);
                                   BT_GAP_ADV_VERY_SLOW_INT_MIN, \
                                   BT_GAP_ADV_VERY_SLOW_INT_MAX, NULL)
 
-uint8_t battery_level = 0;
+uint8_t battery_level;
 uint16_t battery_voltage, temperature, humidity;
 
 static uint8_t service_data[] = {
@@ -43,7 +46,7 @@ static uint8_t service_data[] = {
 };
 
 // define buffer for device name that we can populate on init
-char name[10];
+static char name[10];
 
 /* BLE Advertising data structure */
 static const struct bt_data ad[] = {
@@ -112,7 +115,7 @@ int name_add_mac(char *str)
     return sprintf(str, "%.2s %02X%02X%02X", DEVICE_NAME, addr.a.val[2], addr.a.val[1], addr.a.val[0]);
 }
 
-int bluetooth_init()
+int bluetooth_init(void)
 {
     int err;
 
@@ -139,7 +142,7 @@ int bluetooth_init()
     return 0;
 }
 
-int bluetooth_update(int level, int mv, int temp, int hum)
+int bluetooth_update(uint16_t level, uint16_t mv, uint16_t temp, uint16_t hum)
 {
     battery_level = (level / 100);
     battery_voltage = mv;

@@ -1,6 +1,5 @@
-#include <zephyr/bluetooth/bluetooth.h>
-#include <zephyr/bluetooth/gatt.h>
-#include <zephyr/bluetooth/uuid.h>
+#include <stdint.h>
 
-int bluetooth_init();
-int bluetooth_update(int level, int mv, int temp, int hum);
+int bluetooth_init(void);
+int bluetooth_update(uint16_t level, uint16_t mv, uint16_t temp, uint16_t hum);
+
