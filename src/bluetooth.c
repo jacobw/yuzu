@@ -130,8 +130,12 @@ int bluetooth_update(int level, int mv, int temp, int hum)
     service_data[IDX_VOLTL] = battery_voltage & 0xff;
 
     int err = bt_le_adv_update_data(ad, ARRAY_SIZE(ad), NULL, 0);
-    if (err)
-    {
+    if (err == -EAGAIN) {
+        /* A client is connected; advertising is paused. Data will be
+         * applied when advertising resumes after disconnection. */
+        LOG_DBG("Advertising paused (connected), data queued");
+        return 0;
+    } else if (err) {
         LOG_ERR("Failed to update advertising data (err %d)", err);
         return err;
     }
