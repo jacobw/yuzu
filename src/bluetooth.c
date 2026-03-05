@@ -111,7 +111,7 @@ int bluetooth_init()
     }
     LOG_INF("Advertising started");
 
-    return err;
+    return 0;
 }
 
 int bluetooth_update(int level, int mv, int temp, int hum)
