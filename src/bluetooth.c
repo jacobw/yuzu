@@ -47,10 +47,15 @@ static uint8_t service_data[] = {
 // define buffer for device name that we can populate on init
 char name[10];
 
+/* BLE Advertising data structure */
 static const struct bt_data ad[] = {
+    /* Flags: General Discoverable Mode, BR/EDR not supported */
     BT_DATA_BYTES(BT_DATA_FLAGS, (BT_LE_AD_GENERAL | BT_LE_AD_NO_BREDR)),
+    /* BTHome service data with sensor readings */
     BT_DATA(BT_DATA_SVC_DATA16, service_data, ARRAY_SIZE(service_data)),
-    BT_DATA(BT_DATA_NAME_COMPLETE, name, sizeof(name) - 1)};
+    /* Device name with MAC address suffix */
+    BT_DATA(BT_DATA_NAME_COMPLETE, name, sizeof(name) - 1)
+};
 
 
 /* Declarations */
@@ -104,8 +109,7 @@ int bluetooth_init()
     LOG_INF("Name: %s", name);
 
     err = bt_le_adv_start(ADV_PARAM, ad, ARRAY_SIZE(ad), NULL, 0);
-    if (err)
-    {
+    if (err) {
         LOG_ERR("Advertising failed to start (err %d)", err);
         return err;
     }
