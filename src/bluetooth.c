@@ -23,8 +23,6 @@ LOG_MODULE_REGISTER(yuzu_bluetooth, CONFIG_LOG_DEFAULT_LEVEL);
                                   BT_GAP_ADV_VERY_SLOW_INT_MIN, \
                                   BT_GAP_ADV_VERY_SLOW_INT_MAX, NULL)
 
-static K_SEM_DEFINE(bt_init_ok, 1, 1);
-
 uint8_t battery_level = 0;
 uint16_t battery_voltage, temperature, humidity;
 
@@ -76,6 +74,29 @@ static ssize_t battery_level_charachteristic_cb(struct bt_conn *conn, const stru
 {
     return bt_gatt_attr_read(conn, attr, buf, len, offset, &battery_level, sizeof(battery_level));
 }
+
+static void adv_restart_work_handler(struct k_work *work)
+{
+    int err = bt_le_adv_start(ADV_PARAM, ad, ARRAY_SIZE(ad), NULL, 0);
+
+    if (err) {
+        LOG_ERR("Failed to restart advertising (err %d)", err);
+    } else {
+        LOG_INF("Advertising restarted");
+    }
+}
+
+static K_WORK_DELAYABLE_DEFINE(adv_restart_work, adv_restart_work_handler);
+
+static void disconnected(struct bt_conn *conn, uint8_t reason)
+{
+    LOG_INF("Disconnected (reason 0x%02x)", reason);
+    k_work_schedule(&adv_restart_work, K_MSEC(100));
+}
+
+BT_CONN_CB_DEFINE(conn_callbacks) = {
+    .disconnected = disconnected,
+};
 
 /* Custom functions */
 
