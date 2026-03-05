@@ -20,8 +20,8 @@ LOG_MODULE_REGISTER(yuzu_bluetooth, CONFIG_LOG_DEFAULT_LEVEL);
 #define BT_GAP_ADV_VERY_SLOW_INT_MAX 0x3840 // 9s
 
 #define ADV_PARAM BT_LE_ADV_PARAM(BT_LE_ADV_OPT_CONN | BT_LE_ADV_OPT_USE_IDENTITY, \
-								  BT_GAP_ADV_VERY_SLOW_INT_MIN, \
-								  BT_GAP_ADV_VERY_SLOW_INT_MAX, NULL)
+                                  BT_GAP_ADV_VERY_SLOW_INT_MIN, \
+                                  BT_GAP_ADV_VERY_SLOW_INT_MAX, NULL)
 
 static K_SEM_DEFINE(bt_init_ok, 1, 1);
 
@@ -29,28 +29,28 @@ uint8_t battery_level = 0;
 uint16_t battery_voltage, temperature, humidity;
 
 static uint8_t service_data[] = {
-	BT_UUID_16_ENCODE(BTHOME_SERVICE_UUID),
-	0x40,
-	0x01, // Battery level
-	0x32, // 50%
-	0x02, // Temperature
-	0x00, // Low byte
-	0x00, // High byte
-	0x03, // Humidity
-	0xbf, // Low byte | 50.55%
-	0x13, // High byte
-	0x0C, // Voltage type
-	0x00, // Low byte
-	0x00, // High byte
+    BT_UUID_16_ENCODE(BTHOME_SERVICE_UUID),
+    0x40,
+    0x01, // Battery level
+    0x32, // 50%
+    0x02, // Temperature
+    0x00, // Low byte
+    0x00, // High byte
+    0x03, // Humidity
+    0xbf, // Low byte | 50.55%
+    0x13, // High byte
+    0x0C, // Voltage type
+    0x00, // Low byte
+    0x00, // High byte
 };
 
 // define buffer for device name that we can populate on init
 char name[10];
 
 static const struct bt_data ad[] = {
-	BT_DATA_BYTES(BT_DATA_FLAGS, (BT_LE_AD_GENERAL | BT_LE_AD_NO_BREDR)),
-	BT_DATA(BT_DATA_SVC_DATA16, service_data, ARRAY_SIZE(service_data)),
-	BT_DATA(BT_DATA_NAME_COMPLETE, name, sizeof(name) - 1)};
+    BT_DATA_BYTES(BT_DATA_FLAGS, (BT_LE_AD_GENERAL | BT_LE_AD_NO_BREDR)),
+    BT_DATA(BT_DATA_SVC_DATA16, service_data, ARRAY_SIZE(service_data)),
+    BT_DATA(BT_DATA_NAME_COMPLETE, name, sizeof(name) - 1)};
 
 
 /* Declarations */
@@ -58,27 +58,18 @@ static const struct bt_data ad[] = {
 static ssize_t battery_level_charachteristic_cb(struct bt_conn *conn, const struct bt_gatt_attr *attr, void *buf, uint16_t len, uint16_t offset);
 
 BT_GATT_SERVICE_DEFINE(battery,
-					   BT_GATT_PRIMARY_SERVICE(BT_UUID_BAS),
-					   BT_GATT_CHARACTERISTIC(
-						   BT_UUID_BAS_BATTERY_LEVEL,
-						   BT_GATT_CHRC_READ,
-						   BT_GATT_PERM_READ,
-						   battery_level_charachteristic_cb, NULL, NULL), );
+                       BT_GATT_PRIMARY_SERVICE(BT_UUID_BAS),
+                       BT_GATT_CHARACTERISTIC(
+                           BT_UUID_BAS_BATTERY_LEVEL,
+                           BT_GATT_CHRC_READ,
+                           BT_GATT_PERM_READ,
+                           battery_level_charachteristic_cb, NULL, NULL), );
 
 /* Callbacks */
 
 static ssize_t battery_level_charachteristic_cb(struct bt_conn *conn, const struct bt_gatt_attr *attr, void *buf, uint16_t len, uint16_t offset)
 {
-	return bt_gatt_attr_read(conn, attr, buf, len, offset, &battery_level, sizeof(battery_level));
-}
-
-void bt_ready(int err)
-{
-	if (err)
-	{
-		LOG_ERR("bt_enable returned %d", err);
-	}
-	k_sem_give(&bt_init_ok);
+    return bt_gatt_attr_read(conn, attr, buf, len, offset, &battery_level, sizeof(battery_level));
 }
 
 /* Custom functions */
@@ -91,61 +82,59 @@ int name_add_mac(char *str)
 	bt_addr_le_t addr = {0};
 	size_t count = 1;
 
-	bt_id_get(&addr, &count);
-	return sprintf(str, "%.2s %02X%02X%02X", DEVICE_NAME, addr.a.val[2], addr.a.val[1], addr.a.val[0]);
+    bt_id_get(&addr, &count);
+    return sprintf(str, "%.2s %02X%02X%02X", DEVICE_NAME, addr.a.val[2], addr.a.val[1], addr.a.val[0]);
 }
 
 int bluetooth_init()
 {
-	int err;
+    int err;
 
-	LOG_INF("Initializing bluetooth");
+    LOG_INF("Initializing bluetooth");
 
-	err = bt_enable(bt_ready);
-	if (err)
-	{
-		LOG_ERR("bt_enable returned %d", err);
-		return err;
-	}
-	k_sem_take(&bt_init_ok, K_FOREVER);
-	LOG_INF("Bluetooth initialised");
+    err = bt_enable(NULL);
+    if (err) {
+        LOG_ERR("bt_enable returned %d", err);
+        return err;
+    }
+    LOG_INF("Bluetooth initialised");
 
-	// Add mac to name
-	name_add_mac(name);
-	LOG_INF("Name: %s", name);
+    // Add mac to name
+    name_add_mac(name);
+    LOG_INF("Name: %s", name);
 
-	err = bt_le_adv_start(ADV_PARAM, ad, ARRAY_SIZE(ad), NULL, 0);
-	if (err)
-	{
-		LOG_ERR("Advertising failed to start (err %d)", err);
-		return err;
-	}
-	LOG_INF("Advertising started");
+    err = bt_le_adv_start(ADV_PARAM, ad, ARRAY_SIZE(ad), NULL, 0);
+    if (err)
+    {
+        LOG_ERR("Advertising failed to start (err %d)", err);
+        return err;
+    }
+    LOG_INF("Advertising started");
 
-	return err;
+    return err;
 }
 
 int bluetooth_update(int level, int mv, int temp, int hum)
 {
-	battery_level = (level / 100);
-	battery_voltage = mv;
-	temperature = temp;
-	humidity = hum;
+    battery_level = (level / 100);
+    battery_voltage = mv;
+    temperature = temp;
+    humidity = hum;
 
-	service_data[IDX_BATT] = battery_level;
-	service_data[IDX_TEMPH] = temperature >> 8;
-	service_data[IDX_TEMPL] = temperature & 0xff;
-	service_data[IDX_HUMDH] = humidity >> 8;
-	service_data[IDX_HUMDL] = humidity & 0xff;
-	service_data[IDX_VOLTH] = battery_voltage >> 8;
-	service_data[IDX_VOLTL] = battery_voltage & 0xff;
+    service_data[IDX_BATT] = battery_level;
+    service_data[IDX_TEMPH] = temperature >> 8;
+    service_data[IDX_TEMPL] = temperature & 0xff;
+    service_data[IDX_HUMDH] = humidity >> 8;
+    service_data[IDX_HUMDL] = humidity & 0xff;
+    service_data[IDX_VOLTH] = battery_voltage >> 8;
+    service_data[IDX_VOLTL] = battery_voltage & 0xff;
 
-	int err = bt_le_adv_update_data(ad, ARRAY_SIZE(ad), NULL, 0);
-	if (err)
-	{
-		LOG_ERR("Failed to update advertising data (err %d)", err);
-		return err;
-	}
-	LOG_DBG("Updated advertising data");
-	return 0;
+    int err = bt_le_adv_update_data(ad, ARRAY_SIZE(ad), NULL, 0);
+    if (err)
+    {
+        LOG_ERR("Failed to update advertising data (err %d)", err);
+        return err;
+    }
+    LOG_DBG("Updated advertising data");
+    return 0;
 }
