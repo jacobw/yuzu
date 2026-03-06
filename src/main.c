@@ -84,7 +84,7 @@ int main(void)
 		}
 
 		k_msleep(CONFIG_YUZU_SAMPLE_INTERVAL_MS);
-	};
+	}
 
 	return 0;
 }
