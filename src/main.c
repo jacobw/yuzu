@@ -36,7 +36,7 @@ int main(void)
 	err = bluetooth_init();
 	if (err != 0) {
 		LOG_ERR("Failed to update advertising data (err %d)", err);
-		return 0;
+		return err;
 	}
 
 	err = gpio_pin_configure_dt(&led, GPIO_OUTPUT_INACTIVE);
