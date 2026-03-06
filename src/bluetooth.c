@@ -26,8 +26,8 @@ LOG_MODULE_REGISTER(yuzu_bluetooth, CONFIG_LOG_DEFAULT_LEVEL);
                                   BT_GAP_ADV_VERY_SLOW_INT_MIN, \
                                   BT_GAP_ADV_VERY_SLOW_INT_MAX, NULL)
 
-uint8_t battery_level;
-uint16_t battery_voltage, temperature, humidity;
+static uint8_t battery_level;
+static uint16_t battery_voltage, temperature, humidity;
 
 static uint8_t service_data[] = {
     BT_UUID_16_ENCODE(BTHOME_SERVICE_UUID),
