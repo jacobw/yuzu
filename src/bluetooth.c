@@ -14,10 +14,10 @@ LOG_MODULE_REGISTER(yuzu_bluetooth, CONFIG_LOG_DEFAULT_LEVEL);
 #define IDX_BATT 4                 // Index of battery level in service data
 #define IDX_TEMPL 6                // Index of lo byte of temp in service data
 #define IDX_TEMPH 7                // Index of hi byte of temp in service data
-#define IDX_HUMDL 9                // Index of lo byte of temp in service data
-#define IDX_HUMDH 10               // Index of hi byte of temp in service data
-#define IDX_VOLTL 12               // Index of hi byte of temp in service data
-#define IDX_VOLTH 13               // Index of hi byte of temp in service data
+#define IDX_HUMDL 9                // Index of lo byte of humidity in service data
+#define IDX_HUMDH 10               // Index of hi byte of humidity in service data
+#define IDX_VOLTL 12               // Index of lo byte of voltage in service data
+#define IDX_VOLTH 13               // Index of hi byte of voltage in service data
 
 #define BT_GAP_ADV_VERY_SLOW_INT_MIN 0x3200 // 8s
 #define BT_GAP_ADV_VERY_SLOW_INT_MAX 0x3840 // 9s
@@ -61,7 +61,7 @@ static const struct bt_data ad[] = {
 
 /* Declarations */
 
-static ssize_t battery_level_charachteristic_cb(struct bt_conn *conn, const struct bt_gatt_attr *attr, void *buf, uint16_t len, uint16_t offset);
+static ssize_t battery_level_characteristic_cb(struct bt_conn *conn, const struct bt_gatt_attr *attr, void *buf, uint16_t len, uint16_t offset);
 
 BT_GATT_SERVICE_DEFINE(battery,
                        BT_GATT_PRIMARY_SERVICE(BT_UUID_BAS),
@@ -69,11 +69,11 @@ BT_GATT_SERVICE_DEFINE(battery,
                            BT_UUID_BAS_BATTERY_LEVEL,
                            BT_GATT_CHRC_READ,
                            BT_GATT_PERM_READ,
-                           battery_level_charachteristic_cb, NULL, NULL), );
+                           battery_level_characteristic_cb, NULL, NULL), );
 
 /* Callbacks */
 
-static ssize_t battery_level_charachteristic_cb(struct bt_conn *conn, const struct bt_gatt_attr *attr, void *buf, uint16_t len, uint16_t offset)
+static ssize_t battery_level_characteristic_cb(struct bt_conn *conn, const struct bt_gatt_attr *attr, void *buf, uint16_t len, uint16_t offset)
 {
     return bt_gatt_attr_read(conn, attr, buf, len, offset, &battery_level, sizeof(battery_level));
 }
