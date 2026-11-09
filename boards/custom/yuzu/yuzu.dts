@@ -95,35 +95,30 @@
 &flash0 {
 
 	partitions {
-		compatible = "fixed-partitions";
+		ranges;
 		#address-cells = <1>;
 		#size-cells = <1>;
 
+		/*
+		 * Must match the layout the Partition Manager gave builds up to
+		 * NCS 3.2 (nrf/scripts/pm_to_dts.py on a 3.2.3 build): sensors in
+		 * the field run a bootloader with these slots. A different layout
+		 * breaks updates over Bluetooth to and from those sensors.
+		 */
 		boot_partition: partition@0 {
+			compatible = "zephyr,mapped-partition";
 			label = "mcuboot";
-			reg = <0x00000000 0x0000C000>;
+			reg = <0x00000000 0x0000c000>;
 		};
 		slot0_partition: partition@c000 {
+			compatible = "zephyr,mapped-partition";
 			label = "image-0";
-			reg = <0x0000C000 0x00076000>;
+			reg = <0x0000c000 0x0007a000>;
 		};
-		slot1_partition: partition@82000 {
+		slot1_partition: partition@86000 {
+			compatible = "zephyr,mapped-partition";
 			label = "image-1";
-			reg = <0x00082000 0x00076000>;
-		};
-
-		/*
-		 * The flash starting at 0x000f8000 and ending at
-		 * 0x000fffff is reserved for use by the application.
-		 */
-
-		/*
-		 * Storage partition will be used by FCB/LittleFS/NVS
-		 * if enabled.
-		 */
-		storage_partition: partition@f8000 {
-			label = "storage";
-			reg = <0x000f8000 0x00008000>;
+			reg = <0x00086000 0x0007a000>;
 		};
 	};
 };
