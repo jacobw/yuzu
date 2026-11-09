@@ -19,7 +19,7 @@ LOG_MODULE_REGISTER(yuzu_bluetooth, CONFIG_LOG_DEFAULT_LEVEL);
 #define IDX_VOLTL 12               // Index of lo byte of voltage in service data
 #define IDX_VOLTH 13               // Index of hi byte of voltage in service data
 
-#define BT_GAP_ADV_VERY_SLOW_INT_MIN 0x3200 // 8s
+#define BT_GAP_ADV_VERY_SLOW_INT_MIN 0x3222 // 8.02125 s: off a multiple of a 102.4 ms Wi-Fi beacon, so scanners sharing their radio with Wi-Fi do not miss long runs
 #define BT_GAP_ADV_VERY_SLOW_INT_MAX 0x3840 // 9s
 
 #define ADV_PARAM BT_LE_ADV_PARAM(BT_LE_ADV_OPT_CONN | BT_LE_ADV_OPT_USE_IDENTITY, \
