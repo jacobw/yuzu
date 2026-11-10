@@ -19,7 +19,9 @@ LOG_MODULE_REGISTER(yuzu_bluetooth, CONFIG_LOG_DEFAULT_LEVEL);
 #define IDX_VOLTL 12               // Index of lo byte of voltage in service data
 #define IDX_VOLTH 13               // Index of hi byte of voltage in service data
 
-#define BT_GAP_ADV_VERY_SLOW_INT_MIN 0x3200 // 8s
+// 8.02125 s, not 8 s: at 8 s each broadcast lands about 17 ms later in a 102.4 ms Wi-Fi
+// beacon period, so scanners that share their radio with Wi-Fi miss runs of them.
+#define BT_GAP_ADV_VERY_SLOW_INT_MIN 0x3222
 #define BT_GAP_ADV_VERY_SLOW_INT_MAX 0x3840 // 9s
 
 #define ADV_PARAM BT_LE_ADV_PARAM(BT_LE_ADV_OPT_CONN | BT_LE_ADV_OPT_USE_IDENTITY, \
@@ -27,7 +29,8 @@ LOG_MODULE_REGISTER(yuzu_bluetooth, CONFIG_LOG_DEFAULT_LEVEL);
                                   BT_GAP_ADV_VERY_SLOW_INT_MAX, NULL)
 
 static uint8_t battery_level;
-static uint16_t battery_voltage, temperature, humidity;
+static uint16_t battery_voltage, humidity;
+static int16_t temperature;
 
 static uint8_t service_data[] = {
     BT_UUID_16_ENCODE(BTHOME_SERVICE_UUID),
@@ -78,15 +81,19 @@ static ssize_t battery_level_characteristic_cb(struct bt_conn *conn, const struc
     return bt_gatt_attr_read(conn, attr, buf, len, offset, &battery_level, sizeof(battery_level));
 }
 
+/* BT_LE_ADV_OPT_CONN stops advertising when a connection is made, so it is
+ * restarted here. Started from the recycled callback, once the connection
+ * object is free again, and retried until it succeeds. */
 static void adv_restart_work_handler(struct k_work *work)
 {
     int err = bt_le_adv_start(ADV_PARAM, ad, ARRAY_SIZE(ad), NULL, 0);
 
-    if (err) {
-        LOG_ERR("Failed to restart advertising (err %d)", err);
-    } else {
+    if (err == 0 || err == -EALREADY) {
         LOG_INF("Advertising restarted");
+        return;
     }
+    LOG_ERR("Failed to restart advertising (err %d), retrying", err);
+    k_work_reschedule(k_work_delayable_from_work(work), K_SECONDS(1));
 }
 
 static K_WORK_DELAYABLE_DEFINE(adv_restart_work, adv_restart_work_handler);
@@ -94,11 +101,16 @@ static K_WORK_DELAYABLE_DEFINE(adv_restart_work, adv_restart_work_handler);
 static void disconnected(struct bt_conn *conn, uint8_t reason)
 {
     LOG_INF("Disconnected (reason 0x%02x)", reason);
-    k_work_schedule(&adv_restart_work, K_MSEC(100));
+}
+
+static void recycled(void)
+{
+    k_work_reschedule(&adv_restart_work, K_NO_WAIT);
 }
 
 BT_CONN_CB_DEFINE(conn_callbacks) = {
     .disconnected = disconnected,
+    .recycled = recycled,
 };
 
 /* Custom functions */
@@ -142,7 +154,7 @@ int bluetooth_init(void)
     return 0;
 }
 
-int bluetooth_update(uint16_t level, uint16_t mv, uint16_t temp, uint16_t hum)
+int bluetooth_update(uint16_t level, uint16_t mv, int16_t temp, uint16_t hum)
 {
     battery_level = (level / 100);
     battery_voltage = mv;
@@ -150,8 +162,8 @@ int bluetooth_update(uint16_t level, uint16_t mv, uint16_t temp, uint16_t hum)
     humidity = hum;
 
     service_data[IDX_BATT] = battery_level;
-    service_data[IDX_TEMPH] = temperature >> 8;
-    service_data[IDX_TEMPL] = temperature & 0xff;
+    service_data[IDX_TEMPH] = (uint16_t)temperature >> 8;
+    service_data[IDX_TEMPL] = (uint16_t)temperature & 0xff;
     service_data[IDX_HUMDH] = humidity >> 8;
     service_data[IDX_HUMDL] = humidity & 0xff;
     service_data[IDX_VOLTH] = battery_voltage >> 8;

@@ -47,15 +47,13 @@ int main(void)
 
 	while (true) {
 		struct battery_measurement batt = {0};
-		uint16_t temp = 0;
+		int16_t temp = 0;
 		uint16_t hum = 0;
 		struct sensor_value temp_raw, hum_raw;
 
+		/* A failed read falls through to the sleep: retrying at once would
+		 * spin and drain the cell. */
 		int battery_err = battery_measure(&batt);
-		if (battery_err != 0) {
-			LOG_WRN("Failed to read battery: %d", battery_err);
-			continue;
-		}
 
 		int sensor_err = sensor_sample_fetch(sht);
 		if (sensor_err == 0) {
@@ -66,10 +64,13 @@ int main(void)
 		}
 
 		if (battery_err == 0 && sensor_err == 0) {
-			temp = roundf(sensor_value_to_float(&temp_raw) * 10) * 10;
-			hum = roundf(sensor_value_to_float(&hum_raw) * 10) * 10;
-			
-			LOG_INF("Batt %u.%02u%% %umV, Temp: %uC, Hum %u%%RH", 
+			/* Hundredths, rounded to 0.1. Signed: BTHome's temperature is,
+			 * and a negative float converted to an unsigned type is undefined.
+			 * The driver doesn't clamp humidity (-6 to 119 %). */
+			temp = (int16_t)(lroundf(sensor_value_to_float(&temp_raw) * 10) * 10);
+			hum = (uint16_t)(CLAMP(lroundf(sensor_value_to_float(&hum_raw) * 10), 0, 1000) * 10);
+
+			LOG_INF("Batt %u.%02u%% %umV, Temp: %dC, Hum %u%%RH", 
 					batt.level / 100, batt.level % 100, 
 					batt.mv, temp, hum);
 			bluetooth_update(batt.level, batt.mv, temp, hum);
