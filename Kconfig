@@ -2,9 +2,21 @@ source "Kconfig.zephyr"
 
 config YUZU_SAMPLE_INTERVAL_MS
 	int "Yuzu sampling interval (milliseconds)"
-	default 20000
+	default 10000
 	range 1000 3600000
 	help
 	  Time in milliseconds between sensor readings.
 	  Lower values = more frequent updates but higher power consumption.
 	  Higher values = longer battery life but less responsive data.
+
+config YUZU_ADV_INTERVAL_MS
+	int "Yuzu broadcast interval (milliseconds)"
+	default 4028
+	range 100 10000
+	help
+	  Time in milliseconds between broadcasts, rounded to Bluetooth's
+	  0.625 ms units. Lower values = readings reach receivers sooner
+	  but higher power consumption. Pick it so each broadcast lands
+	  about 0.4 of the way further into the receivers' 102.4 ms Wi-Fi
+	  period: 4028 (4.028 s) or 8021 (8.021 s), not a round number of
+	  seconds.

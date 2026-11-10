@@ -52,6 +52,8 @@ int main(void)
 	(void)battery_measure(&discard);
 	k_msleep(1000);
 
+	bool flashed = false;
+
 	while (true) {
 		struct battery_measurement batt = {0};
 		int16_t temp = 0;
@@ -82,10 +84,14 @@ int main(void)
 					batt.mv, temp, hum);
 			bluetooth_update(batt.level, temp, hum);
 
-			/* Flash LED after successful update */
-			gpio_pin_set_dt(&led, 1);
-			k_msleep(10);
-			gpio_pin_set_dt(&led, 0);
+			/* Flash the LED once, after the first reading, to show the
+			 * sensor is working. Not at every reading: it costs battery. */
+			if (!flashed) {
+				gpio_pin_set_dt(&led, 1);
+				k_msleep(100);
+				gpio_pin_set_dt(&led, 0);
+				flashed = true;
+			}
 		} else {
 			LOG_WRN("Measurement failed - battery err:%d sensor err:%d", 
 					battery_err, sensor_err);

@@ -18,14 +18,14 @@ LOG_MODULE_REGISTER(yuzu_bluetooth, CONFIG_LOG_DEFAULT_LEVEL);
 #define IDX_HUMDL 9                // Index of lo byte of humidity in service data
 #define IDX_HUMDH 10               // Index of hi byte of humidity in service data
 
-// 8.02125 s, not 8 s: at 8 s each broadcast lands about 17 ms later in a 102.4 ms Wi-Fi
-// beacon period, so scanners that share their radio with Wi-Fi miss runs of them.
-#define BT_GAP_ADV_VERY_SLOW_INT_MIN 0x3222
-#define BT_GAP_ADV_VERY_SLOW_INT_MAX 0x3840 // 9s
+// Not a round number of seconds: at 8 s each broadcast lands about 17 ms later in a 102.4 ms
+// Wi-Fi beacon period, so scanners that share their radio with Wi-Fi miss runs of them.
+// Milliseconds to 0.625 ms units, rounded: 8021 ms gives 0x3222, as before.
+#define ADV_INTERVAL_MIN ((CONFIG_YUZU_ADV_INTERVAL_MS * 8 + 2) / 5)
+#define ADV_INTERVAL_MAX (ADV_INTERVAL_MIN + 1600) // 1 s more, as before
 
 #define ADV_PARAM BT_LE_ADV_PARAM(BT_LE_ADV_OPT_CONN | BT_LE_ADV_OPT_USE_IDENTITY, \
-                                  BT_GAP_ADV_VERY_SLOW_INT_MIN, \
-                                  BT_GAP_ADV_VERY_SLOW_INT_MAX, NULL)
+                                  ADV_INTERVAL_MIN, ADV_INTERVAL_MAX, NULL)
 
 static uint8_t battery_level;
 static uint16_t humidity;
