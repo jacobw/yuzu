@@ -45,6 +45,13 @@ int main(void)
 		return err;
 	}
 
+	/* The first battery reading after boot comes out about 0.27 V low, then
+	 * normal 20 s later (seen at three restarts). Discard it and wait a
+	 * moment; advertising only starts with the first kept reading. */
+	struct battery_measurement discard;
+	(void)battery_measure(&discard);
+	k_msleep(1000);
+
 	while (true) {
 		struct battery_measurement batt = {0};
 		int16_t temp = 0;
@@ -73,7 +80,7 @@ int main(void)
 			LOG_INF("Batt %u.%02u%% %umV, Temp: %dC, Hum %u%%RH", 
 					batt.level / 100, batt.level % 100, 
 					batt.mv, temp, hum);
-			bluetooth_update(batt.level, batt.mv, temp, hum);
+			bluetooth_update(batt.level, temp, hum);
 
 			/* Flash LED after successful update */
 			gpio_pin_set_dt(&led, 1);

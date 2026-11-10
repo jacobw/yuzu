@@ -4,6 +4,7 @@
 #include <zephyr/bluetooth/bluetooth.h>
 #include <zephyr/bluetooth/gatt.h>
 #include <zephyr/bluetooth/uuid.h>
+#include <zephyr/app_version.h>
 #include "bluetooth.h"
 
 LOG_MODULE_REGISTER(yuzu_bluetooth, CONFIG_LOG_DEFAULT_LEVEL);
@@ -16,8 +17,6 @@ LOG_MODULE_REGISTER(yuzu_bluetooth, CONFIG_LOG_DEFAULT_LEVEL);
 #define IDX_TEMPH 7                // Index of hi byte of temp in service data
 #define IDX_HUMDL 9                // Index of lo byte of humidity in service data
 #define IDX_HUMDH 10               // Index of hi byte of humidity in service data
-#define IDX_VOLTL 12               // Index of lo byte of voltage in service data
-#define IDX_VOLTH 13               // Index of hi byte of voltage in service data
 
 // 8.02125 s, not 8 s: at 8 s each broadcast lands about 17 ms later in a 102.4 ms Wi-Fi
 // beacon period, so scanners that share their radio with Wi-Fi miss runs of them.
@@ -29,7 +28,8 @@ LOG_MODULE_REGISTER(yuzu_bluetooth, CONFIG_LOG_DEFAULT_LEVEL);
                                   BT_GAP_ADV_VERY_SLOW_INT_MAX, NULL)
 
 static uint8_t battery_level;
-static uint16_t battery_voltage, humidity;
+static uint16_t humidity;
+static bool advertising;
 static int16_t temperature;
 
 static uint8_t service_data[] = {
@@ -43,9 +43,12 @@ static uint8_t service_data[] = {
     0x03, // Humidity
     0xbf, // Low byte | 50.55%
     0x13, // High byte
-    0x0C, // Voltage type
-    0x00, // Low byte
-    0x00, // High byte
+    /* Firmware version, patch first. In place of the voltage object: the
+     * advertising data is exactly 31 bytes with it, legacy advertising's limit. */
+    0xF2,
+    APP_PATCHLEVEL,
+    APP_VERSION_MINOR,
+    APP_VERSION_MAJOR,
 };
 
 // define buffer for device name that we can populate on init
@@ -60,6 +63,11 @@ static const struct bt_data ad[] = {
     /* Device name with MAC address suffix */
     BT_DATA(BT_DATA_NAME_COMPLETE, name, sizeof(name) - 1)
 };
+
+/* Each AD structure costs its data plus a length and a type byte. Legacy
+ * advertising refuses more than 31 bytes, and the sensor would go silent. */
+BUILD_ASSERT(3 + (2 + sizeof(service_data)) + (2 + sizeof(name) - 1) <= BT_GAP_ADV_MAX_ADV_DATA_LEN,
+             "advertising data too long for legacy advertising");
 
 
 /* Declarations */
@@ -144,20 +152,14 @@ int bluetooth_init(void)
     name_add_mac(name);
     LOG_INF("Name: %s", name);
 
-    err = bt_le_adv_start(ADV_PARAM, ad, ARRAY_SIZE(ad), NULL, 0);
-    if (err) {
-        LOG_ERR("Advertising failed to start (err %d)", err);
-        return err;
-    }
-    LOG_INF("Advertising started");
-
+    /* Advertising starts with the first reading (bluetooth_update), so the
+     * placeholder values above are never broadcast. */
     return 0;
 }
 
-int bluetooth_update(uint16_t level, uint16_t mv, int16_t temp, uint16_t hum)
+int bluetooth_update(uint16_t level, int16_t temp, uint16_t hum)
 {
     battery_level = (level / 100);
-    battery_voltage = mv;
     temperature = temp;
     humidity = hum;
 
@@ -166,8 +168,17 @@ int bluetooth_update(uint16_t level, uint16_t mv, int16_t temp, uint16_t hum)
     service_data[IDX_TEMPL] = (uint16_t)temperature & 0xff;
     service_data[IDX_HUMDH] = humidity >> 8;
     service_data[IDX_HUMDL] = humidity & 0xff;
-    service_data[IDX_VOLTH] = battery_voltage >> 8;
-    service_data[IDX_VOLTL] = battery_voltage & 0xff;
+
+    if (!advertising) {
+        int err = bt_le_adv_start(ADV_PARAM, ad, ARRAY_SIZE(ad), NULL, 0);
+        if (err) {
+            LOG_ERR("Advertising failed to start (err %d)", err);
+            return err;
+        }
+        advertising = true;
+        LOG_INF("Advertising started");
+        return 0;
+    }
 
     int err = bt_le_adv_update_data(ad, ARRAY_SIZE(ad), NULL, 0);
     if (err == -EAGAIN) {
